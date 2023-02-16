@@ -61,3 +61,4 @@ const sdkConfig = {
 const { sdkBase } = await create(sdkConfig);
 // Estimate the relayer fee
 const relayerFee = (await sdkBase.estimateRelayerFee({ originDomain: originDomain.toString(), destinationDomain: destinationDomain.toString() })).toString();
+console.log(relayerFee);
