@@ -8,13 +8,6 @@ if (!process.env.MNEMONIC) {
     mnemonic = process.env.MNEMONIC;
 }
 
-let alchemyApiKey: string;
-if (!process.env.AlCHEMY_API_KEY) {
-    throw new Error("Please set your MNEMONIC in a .env file");
-} else {
-    alchemyApiKey = process.env.AlCHEMY_API_KEY;
-}
-
 const connextDomain: { [key: number]: number} = {
     5: 1735353714,
     420: 1735356532,
@@ -36,38 +29,36 @@ export const providerUrls: Record<number, string> = {
     [ChainId.ARBITRUM]: 'https://arb-goerli.g.alchemy.com/v2/4roOugVBSjCuI0vXsAWVR4c__GN40Z0v'
 }
 
-const fromChain = Number(process.argv[2])
-const toChain = Number(process.argv[3])
-console.log(fromChain, toChain)
 
-// Instantiate a Wallet object using your private key (i.e. from Metamask) and use it as a Signer.
-const wallet = ethers.Wallet.fromMnemonic(mnemonic, `m/44'/60'/0'/0/1`);
+export const getRelayerFee = async (fromChain:number, toChain:number): Promise<string> => {
+  // Instantiate a Wallet object using your private key (i.e. from Metamask) and use it as a Signer.
+  const wallet = ethers.Wallet.fromMnemonic(mnemonic, `m/44'/60'/0'/0/1`);
 
-// Connext to a Provider on the sending chain. You can use a provider like Infura (https://infura.io/) or Alchemy (https://www.alchemy.com/).
-const provider = new ethers.providers.JsonRpcProvider(providerUrls[fromChain]);
-const signer = wallet.connect(provider);
-const signerAddress = await signer.getAddress();
-const originDomain = connextDomain[fromChain];
-const destinationDomain = connextDomain[toChain];
+  // Connext to a Provider on the sending chain. You can use a provider like Infura (https://infura.io/) or Alchemy (https://www.alchemy.com/).
+  const provider = new ethers.providers.JsonRpcProvider(providerUrls[fromChain]);
+  const signer = wallet.connect(provider);
+  const signerAddress = await signer.getAddress();
+  const originDomain = connextDomain[fromChain];
+  const destinationDomain = connextDomain[toChain];
 
-// Construct the `SdkConfig`. You can reference chain IDs in the "Resources" tab of the docs.
-const sdkConfig: SdkConfig = {
-  signerAddress: signerAddress,
-  network: "testnet", // can be "mainnet" or "testnet"
-  chains: {
-    [originDomain]: {
-      providers: [providerUrls[fromChain]],
+  // Construct the `SdkConfig`. You can reference chain IDs in the "Resources" tab of the docs.
+  const sdkConfig: SdkConfig = {
+    signerAddress: signerAddress,
+    network: "testnet", // can be "mainnet" or "testnet"
+    chains: {
+      [originDomain]: {
+        providers: [providerUrls[fromChain]],
+      },
+      [destinationDomain]: {
+        providers: [providerUrls[toChain]],
+      },
     },
-    [destinationDomain]: {
-      providers: [providerUrls[toChain]],
-    },
-  },
-};
+  };
 
-// Create the SDK instance.
-const {sdkBase} = await create(sdkConfig);
+  // Create the SDK instance.
+  const {sdkBase} = await create(sdkConfig);
 
-// Estimate the relayer fee
-const relayerFee = (await sdkBase.estimateRelayerFee({originDomain: originDomain.toString(), destinationDomain: destinationDomain.toString()})).toString();
-console.log(relayerFee);
-
+  // Estimate the relayer fee
+  const relayerFee = (await sdkBase.estimateRelayerFee({originDomain: originDomain.toString(), destinationDomain: destinationDomain.toString()})).toString();
+  return relayerFee
+}
